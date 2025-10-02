@@ -107,7 +107,7 @@ resource "azurerm_virtual_machine_scale_set" "vmss" {
   sku {
     name     = "Standard_DS1_v2"
     tier     = "Standard"
-    capacity = 4
+    capacity = 2
   }
 
   storage_profile_image_reference {
@@ -214,6 +214,26 @@ resource "azurerm_network_interface" "jumpbox" {
       }
     }
   }
+rule {
+  metric_trigger {
+    metric_name        = "Percentage CPU"
+    metric_resource_id = azurerm_virtual_machine_scale_set.vmss.id
+    time_grain         = "PT1M"
+    statistic          = "Average"
+    time_window        = "PT5M"
+    time_aggregation   = "Average"
+    operator           = "LessThan"
+    threshold          = 25
+  }
+
+  scale_action {
+    direction = "Decrease"
+    type      = "ChangeCount"
+    value     = "1"
+    cooldown  = "PT5M"
+  }
+}
+
 
   notification {
     email {
