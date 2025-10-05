@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>3.0"
+      version = "~>3.100"
     }
   }
 }
@@ -59,6 +59,7 @@ resource "azurerm_public_ip" "vmss" {
   location            = var.location
   resource_group_name = azurerm_resource_group.vmss.name
   allocation_method   = "Static"
+  sku                 = "Standard"
   domain_name_label   = random_string.fqdn.result
   tags                = var.tags
 }
@@ -67,7 +68,7 @@ resource "azurerm_lb" "vmss" {
   name                = "vmss-lb"
   location            = var.location
   resource_group_name = azurerm_resource_group.vmss.name
-
+  sku                 = "Standard"
   frontend_ip_configuration {
     name                 = "PublicIPAddress"
     public_ip_address_id = azurerm_public_ip.vmss.id
@@ -105,7 +106,7 @@ resource "azurerm_virtual_machine_scale_set" "vmss" {
   upgrade_policy_mode = "Automatic"
 
   sku {
-    name     = "Standard_DS1_v2"
+    name     = "Standard_B2s"
     tier     = "Standard"
     capacity = 2
   }
@@ -162,6 +163,7 @@ resource "azurerm_public_ip" "jumpbox" {
   location            = var.location
   resource_group_name = azurerm_resource_group.vmss.name
   allocation_method   = "Static"
+  sku                 = "Standard"
   domain_name_label   = "${random_string.fqdn.result}-ssh"
   tags                = var.tags
 }
@@ -196,7 +198,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss_autoscale" {
       default = "2"
     }
 
-    # Scale-out rule: add 1 VM when CPU > 75%
+    # Scale-out rule: add 1 VM when CPU > 40%
     rule {
       metric_trigger {
         metric_name        = "Percentage CPU"
@@ -206,7 +208,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss_autoscale" {
         time_window        = "PT5M"
         time_aggregation   = "Average"
         operator           = "GreaterThan"
-        threshold          = 75
+        threshold          = 40
       }
 
       scale_action {
@@ -247,7 +249,7 @@ resource "azurerm_virtual_machine" "jumpbox" {
   location              = var.location
   resource_group_name   = azurerm_resource_group.vmss.name
   network_interface_ids = [azurerm_network_interface.jumpbox.id]
-  vm_size               = "Standard_DS1_v2"
+  vm_size               = "Standard_B2s"
 
   storage_image_reference {
     publisher = "Canonical"
