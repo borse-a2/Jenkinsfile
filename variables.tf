@@ -4,7 +4,7 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  default     = "eastus"
+  default     = "westus2"
   description = "Location where resources will be created"
 }
 
