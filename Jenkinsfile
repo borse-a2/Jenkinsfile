@@ -26,14 +26,21 @@ pipeline {
                 sh 'terraform plan -out=tfplan'
             }
         }
+
+        stage('Terraform Apply') {
+            steps {
+                input message: 'Do you want to apply the Terraform plan?'
+                sh 'terraform apply tfplan'
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ Terraform plan completed successfully.'
+            echo '✅ Terraform apply completed successfully.'
         }
         failure {
-            echo '❌ Terraform plan failed.'
+            echo '❌ Terraform pipeline failed.'
         }
     }
 }
