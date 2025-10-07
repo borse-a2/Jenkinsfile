@@ -4,8 +4,8 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  default     = "westus2"
   description = "Location where resources will be created"
+  default     = "westus2"
 }
 
 variable "tags" {
@@ -28,6 +28,6 @@ variable "admin_user" {
 
 variable "admin_password" {
   description = "Default password for admin account"
-  default     = null
+  default     = "Redhat123$#"
   sensitive   = true
 }
