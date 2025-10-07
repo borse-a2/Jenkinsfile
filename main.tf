@@ -17,15 +17,6 @@ provider "azurerm" {
   }
 }
 
-resource "random_password" "password" {
-  count  = var.admin_password == null ? 1 : 0
-  length = 20
-}
-
-locals {
-  admin_password = try(random_password.password[0].result, var.admin_password)
-}
-
 resource "azurerm_resource_group" "vmss" {
   name     = var.resource_group_name
   location = var.location
@@ -69,6 +60,7 @@ resource "azurerm_lb" "vmss" {
   location            = var.location
   resource_group_name = azurerm_resource_group.vmss.name
   sku                 = "Standard"
+
   frontend_ip_configuration {
     name                 = "PublicIPAddress"
     public_ip_address_id = azurerm_public_ip.vmss.id
@@ -83,9 +75,9 @@ resource "azurerm_lb_backend_address_pool" "bpepool" {
 }
 
 resource "azurerm_lb_probe" "vmss" {
-  loadbalancer_id     = azurerm_lb.vmss.id
-  name                = "ssh-running-probe"
-  port                = var.application_port
+  loadbalancer_id = azurerm_lb.vmss.id
+  name            = "ssh-running-probe"
+  port            = var.application_port
 }
 
 resource "azurerm_lb_rule" "lbnatrule" {
@@ -135,7 +127,7 @@ resource "azurerm_virtual_machine_scale_set" "vmss" {
   os_profile {
     computer_name_prefix = "vmlab"
     admin_username       = var.admin_user
-    admin_password       = local.admin_password
+    admin_password       = var.admin_password
     custom_data          = file("web.conf")
   }
 
@@ -183,67 +175,6 @@ resource "azurerm_network_interface" "jumpbox" {
   tags = var.tags
 }
 
-resource "azurerm_monitor_autoscale_setting" "vmss_autoscale" {
-  name                = "example-autoscale"
-  location            = azurerm_resource_group.vmss.location
-  resource_group_name = azurerm_resource_group.vmss.name
-  target_resource_id  = azurerm_virtual_machine_scale_set.vmss.id
-
-  profile {
-    name = "defaultProfile"
-
-    capacity {
-      minimum = "1"
-      maximum = "10"
-      default = "2"
-    }
-
-    # Scale-out rule: add 1 VM when CPU > 40%
-    rule {
-      metric_trigger {
-        metric_name        = "Percentage CPU"
-        metric_resource_id = azurerm_virtual_machine_scale_set.vmss.id
-        time_grain         = "PT1M"
-        statistic          = "Average"
-        time_window        = "PT5M"
-        time_aggregation   = "Average"
-        operator           = "GreaterThan"
-        threshold          = 40
-      }
-
-      scale_action {
-        direction = "Increase"
-        type      = "ChangeCount"
-        value     = "1"
-        cooldown  = "PT1M"
-      }
-    }
-
-    # Scale-in rule: remove 1 VM when CPU < 25%
-    rule {
-      metric_trigger {
-        metric_name        = "Percentage CPU"
-        metric_resource_id = azurerm_virtual_machine_scale_set.vmss.id
-        time_grain         = "PT1M"
-        statistic          = "Average"
-        time_window        = "PT5M"
-        time_aggregation   = "Average"
-        operator           = "LessThan"
-        threshold          = 25
-      }
-
-      scale_action {
-        direction = "Decrease"
-        type      = "ChangeCount"
-        value     = "1"
-        cooldown  = "PT5M"
-      }
-    }
-  }
-
-  tags = var.tags
-}
-
 resource "azurerm_virtual_machine" "jumpbox" {
   name                  = "jumpbox"
   location              = var.location
@@ -268,11 +199,70 @@ resource "azurerm_virtual_machine" "jumpbox" {
   os_profile {
     computer_name  = "jumpbox"
     admin_username = var.admin_user
-    admin_password = local.admin_password
+    admin_password = var.admin_password
   }
 
   os_profile_linux_config {
     disable_password_authentication = false
+  }
+
+  tags = var.tags
+}
+
+resource "azurerm_monitor_autoscale_setting" "vmss_autoscale" {
+  name                = "example-autoscale"
+  location            = azurerm_resource_group.vmss.location
+  resource_group_name = azurerm_resource_group.vmss.name
+  target_resource_id  = azurerm_virtual_machine_scale_set.vmss.id
+
+  profile {
+    name = "defaultProfile"
+
+    capacity {
+      minimum = "1"
+      maximum = "10"
+      default = "2"
+    }
+
+    rule {
+      metric_trigger {
+        metric_name        = "Percentage CPU"
+        metric_resource_id = azurerm_virtual_machine_scale_set.vmss.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
+        operator           = "GreaterThan"
+        threshold          = 40
+      }
+
+      scale_action {
+        direction = "Increase"
+        type      = "ChangeCount"
+        value     = "1"
+        cooldown  = "PT1M"
+      }
+    }
+
+    rule {
+      metric_trigger {
+        metric_name        = "Percentage CPU"
+        metric_resource_id = azurerm_virtual_machine_scale_set.vmss.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        time_aggregation   = "Average"
+        operator           = "LessThan"
+        threshold          = 25
+      }
+
+      scale_action {
+        direction = "Decrease"
+        type      = "ChangeCount"
+        value     = "1"
+        cooldown  = "PT5M"
+      }
+    }
   }
 
   tags = var.tags
