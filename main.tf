@@ -230,7 +230,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss_autoscale" {
         metric_resource_id = azurerm_virtual_machine_scale_set.vmss.id
         time_grain         = "PT1M"
         statistic          = "Average"
-        time_window        = "PT5M"
+        time_window        = "PT2M"
         time_aggregation   = "Average"
         operator           = "GreaterThan"
         threshold          = 40
@@ -250,7 +250,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss_autoscale" {
         metric_resource_id = azurerm_virtual_machine_scale_set.vmss.id
         time_grain         = "PT1M"
         statistic          = "Average"
-        time_window        = "PT5M"
+        time_window        = "PT2M"
         time_aggregation   = "Average"
         operator           = "LessThan"
         threshold          = 25
@@ -260,7 +260,7 @@ resource "azurerm_monitor_autoscale_setting" "vmss_autoscale" {
         direction = "Decrease"
         type      = "ChangeCount"
         value     = "1"
-        cooldown  = "PT5M"
+        cooldown  = "PT3M"
       }
     }
   }
